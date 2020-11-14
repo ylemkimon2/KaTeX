@@ -1,0 +1,87 @@
+name: Screenshotter
+
+on:
+  push:
+    branches: [ master ]
+  pull_request_target:
+    branches: [ master ]
+
+jobs:
+  screenshotter:
+    runs-on: ubuntu-latest
+    if: |
+      !contains(toJSON(github.event.commits.*.message), '[skip ci]') &&
+      !contains(toJSON(github.event.commits.*.message), '[ci skip]')
+    strategy:
+      matrix:
+        browser: [chrome, firefox, safari]
+        include:
+        - browser: chrome
+          services:
+            selenium:
+              image: selenium/standalone-chrome:3.141.59-20201010
+        - browser: firefox
+          services:
+            selenium:
+              image: selenium/standalone-firefox:3.141.59-20201010
+        - browser: safari
+          services: {}
+          browserstack:
+            browserName: safari
+            browser_version: 13.1
+            os: OS X
+            os_version: Catalina
+      fail-fast: false
+    services: ${{ matrix.services }}
+
+    steps:
+    - uses: actions/checkout@v2
+      if: github.event_name != 'pull_request_target'
+      with:
+        submodules: recursive
+        persist-credentials: false # minimize exposure and prevent accidental pushes
+
+    - name: Use Node.js 12.x
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12'
+
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      with:
+        path: |
+          .yarn/cache
+          .pnp.js
+        key: yarn-deps-v1-${{ hashFiles('yarn.lock') }}
+        restore-keys: |
+          yarn-deps-v1-
+
+    - name: Install dependencies
+      run: yarn --immutable
+      env:
+        YARN_ENABLE_SCRIPTS: 0 # disable postinstall scripts
+
+    - name: Verify screenshots and generate diffs and new screenshots
+      run: yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new -c ${{ job.services.selenium.id }}
+      if: matrix.services.selenium
+    - name: Verify screenshots and generate diffs and new screenshots
+      run: yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --browserstack --selenium-capabilities '${{ toJson(matrix.browserstack) }}'
+      if: matrix.browserstack
+      env:
+        BROWSERSTACK_USER: ${{ secrets.BROWSERSTACK_USER }}
+        BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+
+    - name: Print Docker logs
+      run: docker logs ${{ job.services.selenium.id }}
+      if: always() && matrix.services.selenium
+
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: new-${{ matrix.browser }}
+        path: test/screenshotter/new
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: diff-${{ matrix.browser }}
+        path: test/screenshotter/diff
