@@ -67,7 +67,7 @@ jobs:
           -w /code \
           -e YARN_ENABLE_SCRIPTS=0 \
           node:14-alpine \
-          "yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new -c ${{ job.services.selenium.id }}"
+          yarn --immutable
       if: matrix.services.selenium
 
 #     - name: Verify screenshots and generate diffs and new screenshots
