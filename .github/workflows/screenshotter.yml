@@ -66,7 +66,7 @@ jobs:
           -v "$PWD:/code" \
           -w /code \
           -e YARN_ENABLE_SCRIPTS=0 \
-          node:14-alpine \
+          node:14 \
           /bin/bash -c "yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new -c ${{ job.services.selenium.id }}"
       if: matrix.services.selenium
 
