@@ -50,42 +50,44 @@ jobs:
       with:
         node-version: '12'
 
-    - name: Cache dependencies
-      uses: actions/cache@v2
-      with:
-        path: |
-          .yarn/cache
-          .pnp.js
-        key: yarn-deps-v1-${{ hashFiles('yarn.lock') }}
-        restore-keys: |
-          yarn-deps-v1-
+#     - name: Cache dependencies
+#       uses: actions/cache@v2
+#       with:
+#         path: |
+#           .yarn/cache
+#           .pnp.js
+#         key: yarn-deps-v1-${{ hashFiles('yarn.lock') }}
+#         restore-keys: |
+#           yarn-deps-v1-
 
-    - name: Install dependencies
-      run: yarn --immutable
-      env:
-        YARN_ENABLE_SCRIPTS: 0 # disable postinstall scripts
-
-    - name: Verify screenshots and generate diffs and new screenshots
-      run: yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new -c ${{ job.services.selenium.id }}
+    - name: Run screenshotter
+      run: |
+        docker run --rm \
+          -v "$PWD:/code" \
+          -w /code \
+          -e YARN_ENABLE_SCRIPTS=0 \
+          node:14-alpine
+          "yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new -c ${{ job.services.selenium.id }}"
       if: matrix.services.selenium
-    - name: Verify screenshots and generate diffs and new screenshots
-      run: yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --browserstack --selenium-capabilities '${{ toJson(matrix.browserstack) }}'
-      if: matrix.browserstack
-      env:
-        BROWSERSTACK_USER: ${{ secrets.BROWSERSTACK_USER }}
-        BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
 
-    - name: Print Docker logs
-      run: docker logs ${{ job.services.selenium.id }}
-      if: always() && matrix.services.selenium
+#     - name: Verify screenshots and generate diffs and new screenshots
+#       run: yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --browserstack --selenium-capabilities '${{ toJson(matrix.browserstack) }}'
+#       if: matrix.browserstack
+#       env:
+#         BROWSERSTACK_USER: ${{ secrets.BROWSERSTACK_USER }}
+#         BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
 
-    - uses: actions/upload-artifact@v2
-      if: failure()
-      with:
-        name: new-${{ matrix.browser }}
-        path: test/screenshotter/new
-    - uses: actions/upload-artifact@v2
-      if: failure()
-      with:
-        name: diff-${{ matrix.browser }}
-        path: test/screenshotter/diff
+#     - name: Print Docker logs
+#       run: docker logs ${{ job.services.selenium.id }}
+#       if: always() && matrix.services.selenium
+
+#     - uses: actions/upload-artifact@v2
+#       if: failure()
+#       with:
+#         name: new-${{ matrix.browser }}
+#         path: test/screenshotter/new
+#     - uses: actions/upload-artifact@v2
+#       if: failure()
+#       with:
+#         name: diff-${{ matrix.browser }}
+#         path: test/screenshotter/diff
