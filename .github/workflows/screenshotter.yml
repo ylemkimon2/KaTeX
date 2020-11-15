@@ -20,17 +20,25 @@ jobs:
           services:
             selenium:
               image: selenium/standalone-chrome:3.141.59-20201010
+          screenshotter-args: --selenium-ip selenium
         - browser: firefox
           services:
             selenium:
               image: selenium/standalone-firefox:3.141.59-20201010
+          screenshotter-args: --selenium-ip selenium
         - browser: safari
-          services: {}
+          services:
+            selenium:
+              image: ylemkimon/selenium-proxy:latest
+              env:
+                BROWSERSTACK_USER: ${{ secrets.BROWSERSTACK_USER }}
+                BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
           browserstack:
             browserName: safari
             browser_version: 13.1
             os: OS X
             os_version: Catalina
+          screenshotter-args: --selenium-proxy http://selenium:4445/build --browserstack --selenium-capabilities '${{ toJson(matrix.browserstack) }}'
       fail-fast: false
     services: ${{ matrix.services }}
 
@@ -78,17 +86,9 @@ jobs:
           -e CI=true \
           --network ${{ job.services.selenium.network }} \
           node:14 \
-          /bin/bash -c 'yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --selenium-ip selenium --katex-ip $HOSTNAME'
+          /bin/bash -c 'yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --katex-ip $HOSTNAME ${{ matrix.screenshotter-args }}'
 
         echo "::$TOKEN::"
-      if: matrix.services.selenium
-
-#     - name: Verify screenshots and generate diffs and new screenshots
-#       run: yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --browserstack --selenium-capabilities '${{ toJson(matrix.browserstack) }}'
-#       if: matrix.browserstack
-#       env:
-#         BROWSERSTACK_USER: ${{ secrets.BROWSERSTACK_USER }}
-#         BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
 
     - name: Print Selenium Docker logs
       run: |
