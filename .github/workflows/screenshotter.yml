@@ -49,17 +49,18 @@ jobs:
       with:
         node-version: '14'
 
-#     - name: Cache dependencies
-#       uses: actions/cache@v2
-#       with:
-#         path: |
-#           .yarn/cache
-#           .pnp.js
-#         key: yarn-deps-v1-${{ hashFiles('yarn.lock') }}
-#         restore-keys: |
-#           yarn-deps-v1-
+    - name: Restore cached dependencies
+      uses: ylemkimon/cache-restore@v2
+      with:
+        path: |
+          .yarn/cache
+          .pnp.js
+        key: yarn-deps-v1-${{ hashFiles('yarn.lock') }}
+        restore-keys: |
+          yarn-deps-v1-
 
-    - uses: actions/checkout@v2
+    - name: Check out the PR
+      uses: actions/checkout@v2
       if: github.event_name == 'pull_request_target'
       with:
         ref: ${{github.event.pull_request.head.ref}}
