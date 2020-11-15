@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [ master ]
-  pull_request:
+  pull_request_target:
     branches: [ master ]
 
 jobs:
@@ -50,6 +50,4 @@ jobs:
       run: yarn test:jest --coverage
       if: always()
 
-    - uses: codecov/codecov-action@v1
-      with:
-        directory: ./coverage/
+    - run: echo 1 >> yarn.lock
