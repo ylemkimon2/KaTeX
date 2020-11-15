@@ -66,8 +66,10 @@ jobs:
           -v "$PWD:/code" \
           -w /code \
           -e YARN_ENABLE_SCRIPTS=0 \
+          -e CI=true \
+          --network ${{ job.services.selenium.network }} \
           node:14 \
-          /bin/bash -c "yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new -c ${{ job.services.selenium.id }}"
+          /bin/bash -c 'yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --selenium-ip selenium --katex-ip $HOSTNAME'
       if: matrix.services.selenium
 
 #     - name: Verify screenshots and generate diffs and new screenshots
