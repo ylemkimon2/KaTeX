@@ -20,14 +20,10 @@ jobs:
           services:
             selenium:
               image: selenium/standalone-chrome:3.141.59-20201010
-              ports:
-              - 4444:4444
         - browser: firefox
           services:
             selenium:
               image: selenium/standalone-firefox:3.141.59-20201010
-              ports:
-              - 4444:4444
         - browser: safari
           services: {}
           browserstack:
