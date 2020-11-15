@@ -32,6 +32,7 @@ jobs:
       selenium:
         image: ${{ matrix.image }}
         env:
+          # secrets are not supported in matrix, so put it here and limit to browserstack job
           BROWSERSTACK_USER: ${{ matrix.browserstack && secrets.BROWSERSTACK_USER }}
           BROWSERSTACK_ACCESS_KEY: ${{ matrix.browserstack && secrets.BROWSERSTACK_ACCESS_KEY }}
 
@@ -46,6 +47,7 @@ jobs:
       with:
         node-version: '14'
 
+    # restore only to prevent cache poisoning
     - name: Restore cached dependencies
       uses: ylemkimon/cache-restore@v2
       with:
@@ -60,8 +62,7 @@ jobs:
       uses: actions/checkout@v2
       if: github.event_name == 'pull_request_target'
       with:
-        ref: ${{github.event.pull_request.head.ref}}
-        repository: ${{github.event.pull_request.head.repo.full_name}}
+        ref: refs/pull/${{ github.event.pull_request.number }}/merge
         submodules: recursive
         persist-credentials: false # do not persist credentials
         clean: false
@@ -83,10 +84,11 @@ jobs:
           /bin/bash -c 'yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --katex-ip $HOSTNAME ${{ matrix.browserstack && format('--selenium-proxy http://selenium:4445/build --browserstack --selenium-capabilities ''\''''{0}''\', toJson(matrix.browserstack)) || '--selenium-ip selenium' }}'
 
     - name: Print Selenium Docker logs
+      if: always()
       run: |
+        echo "::error::abc"
         docker logs ${{ job.services.selenium.id }}
         echo "::$TOKEN::"
-      if: always()
 
     - uses: actions/upload-artifact@v2
       if: failure()
