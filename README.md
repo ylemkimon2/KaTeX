@@ -46,7 +46,7 @@ You can also [download KaTeX](https://github.com/KaTeX/KaTeX/releases) and host 
 
 For details on how to configure auto-render extension, refer to [the documentation](https://katex.org/docs/autorender.html).
 
-### API
+### APIS
 
 Call `katex.render` to render a TeX expression directly into a DOM element.
 For example:
