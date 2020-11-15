@@ -29,7 +29,7 @@ jobs:
             browser_version: 13.1
             os: OS X
             os_version: Catalina
-          screenshotter-args: --selenium-proxy http://selenium:4445/build --browserstack --selenium-capabilities '${{ toJson(matrix.browserstack) }}'
+          screenshotter-args: --selenium-proxy http://selenium:4445/build --browserstack'
       fail-fast: false
     services:
       selenium:
