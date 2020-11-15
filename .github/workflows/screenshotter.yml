@@ -18,10 +18,8 @@ jobs:
         include:
         - browser: chrome
           image: selenium/standalone-chrome:3.141.59-20201010
-          screenshotter-args: --selenium-ip selenium
         - browser: firefox
           image: selenium/standalone-firefox:3.141.59-20201010
-          screenshotter-args: --selenium-ip selenium
         - browser: safari
           image: ylemkimon/selenium-proxy:latest
           browserstack:
@@ -29,7 +27,6 @@ jobs:
             browser_version: 13.1
             os: OS X
             os_version: Catalina
-          screenshotter-args: --selenium-proxy http://selenium:4445/build --browserstack'
       fail-fast: false
     services:
       selenium:
@@ -82,7 +79,7 @@ jobs:
           -e CI=true \
           --network ${{ job.services.selenium.network }} \
           node:14 \
-          /bin/bash -c 'yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --katex-ip $HOSTNAME ${{ matrix.screenshotter-args }}'
+          /bin/bash -c 'yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --katex-ip $HOSTNAME ${{ matrix.browserstack && "--selenium-proxy http://selenium:4445/build --browserstack --selenium-capabilities '${{ toJson(matrix.browserstack) }}'" || "--selenium-ip selenium" }}'
 
         echo "::$TOKEN::"
 
