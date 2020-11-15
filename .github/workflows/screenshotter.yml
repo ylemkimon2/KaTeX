@@ -40,15 +40,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      if: github.event_name != 'pull_request_target'
       with:
         submodules: recursive
-        persist-credentials: false # minimize exposure and prevent accidental pushes
+        persist-credentials: false # do not persist credentials
 
-    - name: Use Node.js 12.x
+    - name: Use Node.js 14
       uses: actions/setup-node@v1
       with:
-        node-version: '12'
+        node-version: '14'
 
 #     - name: Cache dependencies
 #       uses: actions/cache@v2
@@ -60,6 +59,15 @@ jobs:
 #         restore-keys: |
 #           yarn-deps-v1-
 
+    - uses: actions/checkout@v2
+      if: github.event_name == 'pull_request_target'
+      with:
+        ref: ${{github.event.pull_request.head.ref}}
+        repository: ${{github.event.pull_request.head.repo.full_name}}
+        submodules: recursive
+        persist-credentials: false # do not persist credentials
+        clean: false
+
     - name: Run screenshotter
       run: |
         docker run --rm \
@@ -69,7 +77,12 @@ jobs:
           -e CI=true \
           --network ${{ job.services.selenium.network }} \
           node:14 \
-          /bin/bash -c 'yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --selenium-ip selenium --katex-ip $HOSTNAME'
+          /bin/bash -c 'yarn --immutable && yarn node dockers/screenshotter/screenshotter.js -b ${{ matrix.browser }} --verify --diff --new --selenium-ip selenium --katex-ip $HOSTNAME' > screenshotter.log
+
+        TOKEN="$(cat /proc/sys/kernel/random/uuid | sha256sum | head -c 64)"
+        echo "::stop-commands::$TOKEN"
+        cat screenshotter.log
+        echo "::$TOKEN::"
       if: matrix.services.selenium
 
 #     - name: Verify screenshots and generate diffs and new screenshots
@@ -79,17 +92,21 @@ jobs:
 #         BROWSERSTACK_USER: ${{ secrets.BROWSERSTACK_USER }}
 #         BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
 
-#     - name: Print Docker logs
-#       run: docker logs ${{ job.services.selenium.id }}
-#       if: always() && matrix.services.selenium
+    - name: Print Docker logs
+      run: |
+        TOKEN="$(cat /proc/sys/kernel/random/uuid | sha256sum | head -c 64)"
+        echo "::stop-commands::$TOKEN"
+        docker logs ${{ job.services.selenium.id }}
+        echo "::$TOKEN::"
+      if: always() && matrix.services.selenium
 
-#     - uses: actions/upload-artifact@v2
-#       if: failure()
-#       with:
-#         name: new-${{ matrix.browser }}
-#         path: test/screenshotter/new
-#     - uses: actions/upload-artifact@v2
-#       if: failure()
-#       with:
-#         name: diff-${{ matrix.browser }}
-#         path: test/screenshotter/diff
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: new-${{ matrix.browser }}
+        path: test/screenshotter/new
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: diff-${{ matrix.browser }}
+        path: test/screenshotter/diff
